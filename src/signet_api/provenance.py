@@ -114,7 +114,9 @@ def verify_request(request) -> Dict[str, Any]:
     body = request.scope.get("_cached_body", b"")
 
     # Validate Content-Digest
-    import re, hashlib, base64 as _b64
+    import re
+    import hashlib
+    import base64 as _b64
 
     cd = lower_map.get("content-digest")
     if not cd:

@@ -186,9 +186,6 @@ def build_merkle(
     print(f"[green]Wrote STH to {out}[/green]")
 
 
-if __name__ == "__main__":
-    app()
-
 @app.command()
 def gen_asym_caller(
     out: str = typer.Option("./keys/caller_ed25519.json", help="Output JSON path"),
@@ -200,5 +197,10 @@ def gen_asym_caller(
     json.dump(
         {"key_id": key_id, "sk_b64": B64(sk), "pk_b64": B64(pk)}, open(out, "w"), indent=2
     )
-    print(f"[green]Wrote caller Ed25519 keypair to {out}[/green]
-Hint: add its public key to ./keys/ingress_ed25519_pubkeys.json for server verify.")
+    print(
+        f"[green]Wrote caller Ed25519 keypair to {out}[/green]\n"
+        "Hint: add its public key to ./keys/ingress_ed25519_pubkeys.json for server verify."
+    )
+
+if __name__ == "__main__":
+    app()
