@@ -28,6 +28,37 @@
           "raw": "{\"message\": {\"text\": \"hello\"}}"
         }
       }
+    },
+    {
+      "name": "vex exchange (ed25519 placeholder)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Compute Content-Digest for body and set placeholder signature.",
+              "const crypto = require('crypto');",
+              "const body = pm.request.body.raw;",
+              "const hash = crypto.createHash('sha256').update(body).digest('base64');",
+              "pm.request.headers.add({key: 'Content-Digest', value: 'sha-256=:' + hash + ':'});",
+              "// Signature-Input with alg=ed25519 keyid=caller-1 (replace placeholder).",
+              "const created = Math.floor(Date.now()/1000);",
+              "pm.request.headers.add({key: 'Signature-Input', value: 'sig1=(\"@method\" \"@path\" \"content-digest\");created=' + created + ';alg=\"ed25519\";keyid=\"caller-1\"'});",
+              "pm.request.headers.add({key: 'Signature', value: 'sig1=:PLACEHOLDER_BASE64_SIG:'});",
+              "// Use the CLI to get a real signature and paste it in place of the placeholder."
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "url": "{{baseUrl}}/vex/exchange",
+        "body": {"mode": "raw", "raw": "{\"message\": {\"text\": \"hello ed25519\"}}"}
+      }
     }
   ],
   "variable": [
