@@ -136,8 +136,15 @@ def verify_request(request) -> Dict[str, Any]:
             self.headers = headers
             self.body = body
 
-    verify_results = verifier.verify(ReqShim(request.method, str(request.url), orig_headers, body))
+    verify_results = verifier.verify(
+        ReqShim(request.method, str(request.url), orig_headers, body)
+    )
     vr = verify_results[0]
     # key id is inside parameters ("keyid" usually)
     kid = vr.parameters.get("keyid")
-    return {"key_id": kid, "covered": vr.covered_components, "params": vr.parameters, "algorithm": alg_label}
+    return {
+        "key_id": kid,
+        "covered": vr.covered_components,
+        "params": vr.parameters,
+        "algorithm": alg_label,
+    }

@@ -59,11 +59,14 @@ class StaticResolver(HTTPSignatureKeyResolver):
 @app.command()
 def make_demo_exchange(
     url: str = typer.Option(..., help="POST URL for /vex/exchange"),
-    key_path: str = typer.Option("./keys/ingress_hmac.json", help="HMAC key json (when --algo hmac)"),
+    key_path: str = typer.Option(
+        "./keys/ingress_hmac.json", help="HMAC key json (when --algo hmac)"
+    ),
     message: str = typer.Option("hello from signet", help="Message value"),
     algo: str = typer.Option("hmac", help="Signature algorithm: hmac|ed25519"),
     caller_key: str = typer.Option(
-        "./keys/caller_ed25519.json", help="Caller Ed25519 key json (when --algo ed25519)"
+        "./keys/caller_ed25519.json",
+        help="Caller Ed25519 key json (when --algo ed25519)",
     ),
 ):
     algo = algo.lower()
@@ -195,12 +198,15 @@ def gen_asym_caller(
     sk, pk = ed25519_generate()
     os.makedirs(os.path.dirname(out), exist_ok=True)
     json.dump(
-        {"key_id": key_id, "sk_b64": B64(sk), "pk_b64": B64(pk)}, open(out, "w"), indent=2
+        {"key_id": key_id, "sk_b64": B64(sk), "pk_b64": B64(pk)},
+        open(out, "w"),
+        indent=2,
     )
     print(
         f"[green]Wrote caller Ed25519 keypair to {out}[/green]\n"
         "Hint: add its public key to ./keys/ingress_ed25519_pubkeys.json for server verify."
     )
+
 
 if __name__ == "__main__":
     app()
