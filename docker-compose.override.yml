@@ -1,0 +1,10 @@
+services:
+  api:
+    environment:
+      - SIGNET_STORAGE_DIR=/app/storage
+      - SIGNET_SIGNING_KEY_PATH=/app/keys/ed25519_private.key
+      - SIGNET_SIGNING_PUBKEY_PATH=/app/keys/ed25519_public.key
+      - SIGNET_INGRESS_HMAC_PATH=/app/keys/ingress_hmac.json
+    volumes:
+      - ./storage:/app/storage
+      - ./keys:/app/keys

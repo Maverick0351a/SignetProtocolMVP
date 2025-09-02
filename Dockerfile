@@ -1,17 +1,36 @@
 # Runtime image
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends     ca-certificates libsodium23 &&     rm -rf /var/lib/apt/lists/*
+# Install only runtime dependencies (libsodium for PyNaCl)
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends ca-certificates libsodium23 \
+	&& rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONUNBUFFERED=1 \
+	PYTHONPATH=/app/src
 
 WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
 
+# Copy only requirements first for better layer caching
 COPY requirements.txt ./
-RUN pip install --no-cache-dir --upgrade pip &&     pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+	&& pip install --no-cache-dir -r requirements.txt
 
-COPY src ./src
-ENV PYTHONPATH=/app/src
+# Create non-root user and group (uid:gid 1001)
+RUN groupadd -g 1001 appuser && useradd -u 1001 -g appuser -m appuser
+
+# Create runtime dirs with correct ownership
+RUN mkdir -p /app/src /app/storage /app/keys \
+	&& chown -R appuser:appuser /app
+
+# Copy only necessary source (avoid copying tests, docs, etc.)
+COPY src/signet_api ./src/signet_api
+COPY src/signet_cli ./src/signet_cli
+COPY src/signet_sdk ./src/signet_sdk
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 8000
 CMD ["uvicorn", "signet_api.main:app", "--host", "0.0.0.0", "--port", "8000"]

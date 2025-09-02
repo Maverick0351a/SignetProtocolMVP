@@ -75,6 +75,29 @@ Use `python -m signet_cli verify-receipt <path>` and `build-merkle` to verify lo
 - `Dockerfile` and `.devcontainer/` for reproducible local dev.
 - `requirements.txt` pinned to current stable versions.
 
+## Python SDK (Experimental)
+
+A minimal verification-only SDK is packaged as `signet_sdk`.
+
+### Build & Install Locally
+
+```bash
+python -m build
+pip install dist/signet_sdk-0.0.1-py3-none-any.whl
+```
+
+### Usage
+
+```python
+from signet_sdk import verify_receipt, verify_sth
+import json
+
+receipt = json.load(open('path/to/receipt.json'))
+print('Receipt valid?', verify_receipt(receipt))
+```
+
+`verify_inclusion` is a placeholder and will return False until Merkle inclusion proofs are exported.
+
 ## License
 
 This scaffold is provided as‑is under the MIT license for the parts authored here. See third‑party licenses for dependencies.
