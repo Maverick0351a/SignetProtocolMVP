@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API (uvicorn)",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "signet_api.main:app",
+        "--port",
+        "8000",
+        "--reload"
+      ],
+      "jinja": false,
+      "justMyCode": true
+    }
+  ]
+}

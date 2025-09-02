@@ -1,0 +1,13 @@
+.env
+.env.*
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+storage/
+keys/
+.DS_Store
+.vscode/settings.json
