@@ -31,6 +31,7 @@ def verify_sth(sth_json: Dict[str, Any]) -> bool:
         return False
     body = {k: v for k, v in sth_json.items() if k != "signature_b64"}
     import rfc8785
+
     canon = rfc8785.dumps(body)
     try:
         return ed25519_verify(B64D(pub_b64), canon, B64D(sig_b64))
