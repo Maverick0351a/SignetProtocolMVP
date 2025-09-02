@@ -1,4 +1,3 @@
-import base64
 from typing import Dict, Any
 from signet_api.crypto import ed25519_verify, jcs_dumps, B64D
 
