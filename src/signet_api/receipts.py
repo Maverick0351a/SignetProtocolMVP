@@ -9,7 +9,8 @@ from .settings import settings
 
 
 def _now_iso() -> str:
-    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
+    # Use timezone-aware UTC per deprecation guidance
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
 def canonical_payload_hash(payload: dict) -> bytes:
