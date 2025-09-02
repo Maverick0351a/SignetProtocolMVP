@@ -218,7 +218,6 @@ def build_compliance_pack(
 ):
     """Build a Compliance Pack zip containing receipts, sth.json, and verification scripts."""
     from zipfile import ZipFile, ZIP_DEFLATED
-    import random
 
     out_path = pathlib.Path(out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -243,13 +242,7 @@ def build_compliance_pack(
     latest_day_dir = pathlib.Path(receipts_dir) / today.isoformat()
     sth_path = latest_day_dir / "sth.json"
     if latest_day_dir.exists() and not sth_path.exists():
-        # Reuse build_merkle code path via function call
-        ctx = typer.Context(build_merkle)
-        try:
-            build_merkle.callback  # type: ignore[attr-defined]
-        except AttributeError:
-            pass
-        # direct invocation
+        # Directly invoke build_merkle to create missing STH
         build_merkle(dir=receipts_dir)
 
     # Re-scan to capture sth.json after potential build
@@ -259,7 +252,7 @@ def build_compliance_pack(
         pack_files.append((rel, f))
 
     # README content
-    readme = f"""# Signet Compliance Pack\n\nIncluded days: {', '.join(sorted(set(d for d,_ in collected)))}\n\n## Contents\n- receipts/<date>/*.json SR-1 receipts (each has payload hash + signature)\n- receipts/<date>/sth.json Signed Tree Head (Merkle root + signature) if present\n- verify.sh / verify.ps1 helper scripts\n\n## SR-1 Receipt Verification\nA receipt's signature covers canonical RFC 8785 JSON of the receipt body (minus signature field).\nUse:\n\n```bash\npython -m signet_cli verify-receipt receipts/{today.isoformat()}/<receipt_id>.json\n```\n\n## Merkle STH Verification (conceptual)\nThe STH signs the Merkle root of the day's receipts. Inclusion proofs not included in this pack, but root attests set membership.\n\n## Sample Verification Script\nSee verify.sh or verify.ps1 to run a random sample and report PASS/FAIL.\n\n## Ed25519 Keys\nThe verifying public key is embedded in each receipt (`signer_pubkey_b64`).\n"""
+    readme = f"""# Signet Compliance Pack\n\nIncluded days: {", ".join(sorted(set(d for d, _ in collected)))}\n\n## Contents\n- receipts/<date>/*.json SR-1 receipts (each has payload hash + signature)\n- receipts/<date>/sth.json Signed Tree Head (Merkle root + signature) if present\n- verify.sh / verify.ps1 helper scripts\n\n## SR-1 Receipt Verification\nA receipt's signature covers canonical RFC 8785 JSON of the receipt body (minus signature field).\nUse:\n\n```bash\npython -m signet_cli verify-receipt receipts/{today.isoformat()}/<receipt_id>.json\n```\n\n## Merkle STH Verification (conceptual)\nThe STH signs the Merkle root of the day's receipts. Inclusion proofs not included in this pack, but root attests set membership.\n\n## Sample Verification Script\nSee verify.sh or verify.ps1 to run a random sample and report PASS/FAIL.\n\n## Ed25519 Keys\nThe verifying public key is embedded in each receipt (`signer_pubkey_b64`).\n"""
 
     # Verification scripts (simple sampling)
     sample_script_bash = """#!/usr/bin/env bash
@@ -305,7 +298,10 @@ Write-Host "Failures: $fails"; if ($fails -eq 0) { Write-Host PASS } else { Writ
         z.writestr("verify.sh", sample_script_bash)
         z.writestr("verify.ps1", sample_script_ps)
 
-    print(f"[green]Wrote compliance pack to {out_path} (files: {len(pack_files)})[/green]")
+    print(
+        f"[green]Wrote compliance pack to {out_path} (files: {len(pack_files)})[/green]"
+    )
+
 
 if __name__ == "__main__":
     app()

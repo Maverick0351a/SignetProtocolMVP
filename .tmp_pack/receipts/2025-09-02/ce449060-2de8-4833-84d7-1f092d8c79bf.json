@@ -1,0 +1,15 @@
+{
+  "receipt_id": "ce449060-2de8-4833-84d7-1f092d8c79bf",
+  "chain_id": "dev-signet-1",
+  "ts": "2025-09-02T22:22:29.629716+00:00",
+  "payload_hash_b64": "kAJMrAfT7kyFpR4B5HX109yCqRbDCUpM6rZhH0crkpY=",
+  "prev_receipt_hash_b64": "j6mNhC3vPhVkXCrAImbqYNmFLY7G6N6xEFzUN5GG68E=",
+  "signer_pubkey_b64": "PSLiRmzameY8zMJPRi2rycIB35D3JB12pmvcpo26SNU=",
+  "signature_b64": "+ZFAUiXmAmykksi9KMO0UszoPGZh5brqD+9WsTC7GZM2795RZoK16WNIWzPfSEZDEQ/osNT24q5Dv4A5NVhSBg==",
+  "http": {
+    "method": "POST",
+    "path": "/vex/exchange",
+    "content_digest": "sha-256=:NSFlsXQO7DX+jjzFUSJF0k0On9Wp22gzJzD5yFtZBRo=:",
+    "signer_key_id": "k1"
+  }
+}
