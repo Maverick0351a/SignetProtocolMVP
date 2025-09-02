@@ -208,5 +208,104 @@ def gen_asym_caller(
     )
 
 
+@app.command()
+def build_compliance_pack(
+    out: str = typer.Option("./dist/compliance_pack.zip", help="Output zip path"),
+    days: int = typer.Option(1, help="Number of days (including today) to include"),
+    receipts_dir: str = typer.Option(
+        "./storage/receipts", help="Base directory containing dated receipt folders"
+    ),
+):
+    """Build a Compliance Pack zip containing receipts, sth.json, and verification scripts."""
+    from zipfile import ZipFile, ZIP_DEFLATED
+    import random
+
+    out_path = pathlib.Path(out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Collect days
+    today = datetime.date.today()
+    day_dirs = [today - datetime.timedelta(days=i) for i in range(days)]
+    collected = []
+    for d in day_dirs:
+        day_path = pathlib.Path(receipts_dir) / d.isoformat()
+        if not day_path.exists():
+            continue
+        for f in sorted(day_path.glob("*.json")):
+            # include all receipts + sth.json if present
+            collected.append((d.isoformat(), f))
+
+    if not collected:
+        print("[red]No receipts found for requested window[/red]")
+        raise typer.Exit(code=1)
+
+    # Ensure STH exists for today (or newest day) by calling build_merkle logic if missing
+    latest_day_dir = pathlib.Path(receipts_dir) / today.isoformat()
+    sth_path = latest_day_dir / "sth.json"
+    if latest_day_dir.exists() and not sth_path.exists():
+        # Reuse build_merkle code path via function call
+        ctx = typer.Context(build_merkle)
+        try:
+            build_merkle.callback  # type: ignore[attr-defined]
+        except AttributeError:
+            pass
+        # direct invocation
+        build_merkle(dir=receipts_dir)
+
+    # Re-scan to capture sth.json after potential build
+    pack_files = []
+    for d, f in collected:
+        rel = f"receipts/{d}/{f.name}"
+        pack_files.append((rel, f))
+
+    # README content
+    readme = f"""# Signet Compliance Pack\n\nIncluded days: {', '.join(sorted(set(d for d,_ in collected)))}\n\n## Contents\n- receipts/<date>/*.json SR-1 receipts (each has payload hash + signature)\n- receipts/<date>/sth.json Signed Tree Head (Merkle root + signature) if present\n- verify.sh / verify.ps1 helper scripts\n\n## SR-1 Receipt Verification\nA receipt's signature covers canonical RFC 8785 JSON of the receipt body (minus signature field).\nUse:\n\n```bash\npython -m signet_cli verify-receipt receipts/{today.isoformat()}/<receipt_id>.json\n```\n\n## Merkle STH Verification (conceptual)\nThe STH signs the Merkle root of the day's receipts. Inclusion proofs not included in this pack, but root attests set membership.\n\n## Sample Verification Script\nSee verify.sh or verify.ps1 to run a random sample and report PASS/FAIL.\n\n## Ed25519 Keys\nThe verifying public key is embedded in each receipt (`signer_pubkey_b64`).\n"""
+
+    # Verification scripts (simple sampling)
+    sample_script_bash = """#!/usr/bin/env bash
+set -euo pipefail
+echo "Verifying sample receipts..."
+fails=0
+total=0
+mapfile -t RECEIPTS < <(find receipts -maxdepth 2 -type f -name '*.json' ! -name 'sth.json')
+shuf -n 5 < <(printf '%s\n' "${RECEIPTS[@]}") | while read -r r; do
+  if python -m signet_cli verify-receipt "$r" | grep -q 'True'; then
+    echo "[OK] $r"
+  else
+    echo "[FAIL] $r"; fails=$((fails+1))
+  fi
+  total=$((total+1))
+done
+if [ -f receipts/$(date +%Y-%m-%d)/sth.json ]; then
+  echo "STH present: receipts/$(date +%Y-%m-%d)/sth.json"
+fi
+echo "Failures: $fails / $total"; [ "$fails" -eq 0 ] && echo PASS || (echo FAIL; exit 1)
+"""
+
+    sample_script_ps = """Param()
+$ErrorActionPreference = 'Stop'
+Write-Host 'Verifying sample receipts...'
+$receipts = Get-ChildItem -Recurse -Filter *.json receipts | Where-Object { $_.Name -ne 'sth.json' }
+$sample = $receipts | Get-Random -Count ([Math]::Min(5, $receipts.Count))
+$fails = 0
+foreach ($r in $sample) {
+  $out = python -m signet_cli verify-receipt $r.FullName | Out-String
+  if ($out -match 'True') { Write-Host "[OK] $($r.Name)" } else { Write-Host "[FAIL] $($r.Name)"; $fails++ }
+}
+$sth = Join-Path 'receipts' (Get-Date -Format 'yyyy-MM-dd') 'sth.json'
+if (Test-Path $sth) { Write-Host "STH present: $sth" }
+Write-Host "Failures: $fails"; if ($fails -eq 0) { Write-Host PASS } else { Write-Host FAIL; exit 1 }
+"""
+
+    with ZipFile(out_path, "w", compression=ZIP_DEFLATED) as z:
+        # write receipts
+        for rel, f in pack_files:
+            z.write(f, rel)
+        z.writestr("README.md", readme)
+        z.writestr("verify.sh", sample_script_bash)
+        z.writestr("verify.ps1", sample_script_ps)
+
+    print(f"[green]Wrote compliance pack to {out_path} (files: {len(pack_files)})[/green]")
+
 if __name__ == "__main__":
     app()
