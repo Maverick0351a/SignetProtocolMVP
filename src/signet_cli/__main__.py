@@ -59,16 +59,46 @@ class StaticResolver(HTTPSignatureKeyResolver):
 @app.command()
 def make_demo_exchange(
     url: str = typer.Option(..., help="POST URL for /vex/exchange"),
-    key_path: str = typer.Option("./keys/ingress_hmac.json", help="HMAC key json"),
+    key_path: str = typer.Option("./keys/ingress_hmac.json", help="HMAC key json (when --algo hmac)"),
     message: str = typer.Option("hello from signet", help="Message value"),
+    algo: str = typer.Option("hmac", help="Signature algorithm: hmac|ed25519"),
+    caller_key: str = typer.Option(
+        "./keys/caller_ed25519.json", help="Caller Ed25519 key json (when --algo ed25519)"
+    ),
 ):
-    data = json.load(open(key_path))
-    key_id = data["key_id"]
-    secret = base64.b64decode(data["secret_b64"])
-    resolver = StaticResolver(key_id, secret)
-    signer = HTTPMessageSigner(
-        signature_algorithm=algorithms.HMAC_SHA256, key_resolver=resolver
-    )
+    algo = algo.lower()
+    if algo == "hmac":
+        data = json.load(open(key_path))
+        key_id = data["key_id"]
+        secret = base64.b64decode(data["secret_b64"])
+        resolver = StaticResolver(key_id, secret)
+        signer = HTTPMessageSigner(
+            signature_algorithm=algorithms.HMAC_SHA256, key_resolver=resolver
+        )
+        sig_args = {"key_id": key_id}
+    elif algo == "ed25519":
+        k = json.load(open(caller_key))
+        key_id = k["key_id"]
+        sk_b64 = k["sk_b64"]
+        sk = base64.b64decode(sk_b64)
+        from nacl.signing import SigningKey
+
+        class Ed25519Resolver(HTTPSignatureKeyResolver):
+            def resolve_public_key(self, key_id_inner: str):
+                raise NotImplementedError
+
+            def resolve_private_key(self, key_id_inner: str):
+                if key_id_inner != key_id:
+                    raise KeyError("unknown key id")
+                return SigningKey(sk)
+
+        resolver = Ed25519Resolver()
+        signer = HTTPMessageSigner(
+            signature_algorithm=algorithms.ED25519, key_resolver=resolver
+        )
+        sig_args = {"key_id": key_id}
+    else:
+        raise typer.BadParameter("Unsupported algo; choose hmac or ed25519")
 
     payload = {"message": {"text": message}}
     req = requests.Request("POST", url, json=payload)
@@ -82,8 +112,8 @@ def make_demo_exchange(
 
     signer.sign(
         prepared,
-        key_id=key_id,
         covered_component_ids=("@method", "@path", "content-digest"),
+        **sig_args,
     )
     s = requests.Session()
     resp = s.send(prepared)
@@ -158,3 +188,17 @@ def build_merkle(
 
 if __name__ == "__main__":
     app()
+
+@app.command()
+def gen_asym_caller(
+    out: str = typer.Option("./keys/caller_ed25519.json", help="Output JSON path"),
+    key_id: str = typer.Option("caller-1", help="Key ID to embed"),
+):
+    """Generate an Ed25519 keypair for an ingress caller (asymmetric mode)."""
+    sk, pk = ed25519_generate()
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    json.dump(
+        {"key_id": key_id, "sk_b64": B64(sk), "pk_b64": B64(pk)}, open(out, "w"), indent=2
+    )
+    print(f"[green]Wrote caller Ed25519 keypair to {out}[/green]
+Hint: add its public key to ./keys/ingress_ed25519_pubkeys.json for server verify.")
