@@ -250,7 +250,7 @@ python -m pip install -r requirements.txt
 PYTHONPATH=./src python fuzz/fuzz_merkle.py  # (runs until interrupted)
 ```
 
-Workflows currently pin action references via placeholders (`PINNED_SHA_*`). Replace with real commit SHAs for full supply‑chain integrity and an improved OpenSSF Scorecard Fuzzing score.
+All GitHub Actions are pinned to specific commit SHAs for supply‑chain integrity (improves OpenSSF Scorecard signals).
 
 License
 
