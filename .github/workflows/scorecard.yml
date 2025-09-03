@@ -18,13 +18,13 @@ jobs:
       id-token: write          # required by Scorecard action even if publish_results=false (OIDC)
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@PINNED_SHA_HARDEN_V2
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@PINNED_SHA_CHECKOUT_V4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Run Scorecard (SARIF only; no publish/sign)
-        uses: ossf/scorecard-action@PINNED_SHA_SCORECARD_V2
+        uses: ossf/scorecard-action@937ffa90d79c7d720498178154ad4c7ba1e4ad8c # v2.1.0
         with:
           results_file: results.sarif
           results_format: sarif
@@ -32,6 +32,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@PINNED_SHA_CODEQL_V3
+        uses: github/codeql-action/upload-sarif@b36bf259c813715f76eafece573914b94412cd13 # v3
         with:
           sarif_file: results.sarif

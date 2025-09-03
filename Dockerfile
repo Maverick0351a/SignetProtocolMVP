@@ -1,5 +1,6 @@
-# Runtime image
-FROM python:3.12-slim
+# Runtime image (pinned by digest for reproducibility)
+# Obtain digest with: crane digest python:3.12-slim
+FROM python@sha256:REPLACE_WITH_REAL_DIGEST
 
 # Install only runtime dependencies (libsodium for PyNaCl)
 RUN apt-get update \
@@ -14,6 +15,10 @@ WORKDIR /app
 
 # Copy only requirements first for better layer caching
 COPY requirements.txt ./
+# For stronger supply-chain guarantees, consider generating a hashed requirements file
+# and using --require-hashes. Example (replace after generating hashes):
+# RUN pip install --no-cache-dir --upgrade pip \
+# 	&& pip install --no-cache-dir --require-hashes -r requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
 	&& pip install --no-cache-dir -r requirements.txt
 

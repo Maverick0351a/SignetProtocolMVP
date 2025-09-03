@@ -16,20 +16,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@PINNED_SHA_HARDEN_V2
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@PINNED_SHA_CHECKOUT_V4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Setup Python
-        uses: actions/setup-python@PINNED_SHA_SETUP_PY_V5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@PINNED_SHA_CODEQL_V3
+        uses: github/codeql-action/init@b36bf259c813715f76eafece573914b94412cd13 # v3
         with:
           languages: python
       - name: Autobuild
-        uses: github/codeql-action/autobuild@PINNED_SHA_CODEQL_V3
+        uses: github/codeql-action/autobuild@b36bf259c813715f76eafece573914b94412cd13 # v3
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@PINNED_SHA_CODEQL_V3
+        uses: github/codeql-action/analyze@b36bf259c813715f76eafece573914b94412cd13 # v3

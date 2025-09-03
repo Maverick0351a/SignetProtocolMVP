@@ -49,6 +49,18 @@ Tooling ▶ CLI: verify‑receipt | build‑merkle | build‑compliance‑pack |
 
 > **Requirements:** Python 3.11+ (Windows, macOS, Linux). Optional: Docker.
 
+### Install only the verification SDK
+
+```bash
+pip install signet-sdk
+```
+
+Import:
+
+```python
+from signet_sdk import verify_receipt, verify_sth, verify_inclusion
+```
+
 ### macOS/Linux
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -209,6 +221,8 @@ Multi‑tenant quotas & reserved capacity
 
 LangChain and JS adapter examples
 
+Fuzzing harnesses (ClusterFuzzLite) for receipt & Merkle logic
+
 Contributing
 
 ruff check + ruff format must pass
@@ -220,6 +234,23 @@ Update docs for any behavior change
 Run all:
 
 python -m ruff check src tests && python -m ruff format --check src tests && python -m pytest -q
+
+### Fuzzing (ClusterFuzzLite)
+
+We provide Atheris-based fuzz harnesses under `fuzz/` and two GitHub Actions workflows:
+
+- `fuzzing-pr.yml` (quick 2‑minute fuzz on every PR touching Python code or harnesses)
+- `fuzzing-cron.yml` (15‑minute nightly fuzz run)
+
+Local run (example):
+
+```bash
+pip install -r requirements-fuzz.txt
+python -m pip install -r requirements.txt
+PYTHONPATH=./src python fuzz/fuzz_merkle.py  # (runs until interrupted)
+```
+
+All GitHub Actions are pinned to specific commit SHAs for supply‑chain integrity (improves OpenSSF Scorecard signals).
 
 License
 
