@@ -7,15 +7,17 @@ on:
       - 'fuzz/**'
       - '.github/workflows/fuzzing-pr.yml'
 
-permissions:
-  contents: read
-  security-events: write
+permissions: read-all
 
 jobs:
   fuzz:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2
+        with:
+          egress-policy: audit
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Set up Python
