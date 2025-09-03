@@ -1,0 +1,35 @@
+name: CodeQL
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '17 3 * * 5'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@PINNED_SHA_HARDEN_V2
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@PINNED_SHA_CHECKOUT_V4
+      - name: Setup Python
+        uses: actions/setup-python@PINNED_SHA_SETUP_PY_V5
+        with:
+          python-version: '3.12'
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@PINNED_SHA_CODEQL_V3
+        with:
+          languages: python
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@PINNED_SHA_CODEQL_V3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@PINNED_SHA_CODEQL_V3
