@@ -5,4 +5,4 @@ updates:
     schedule: { interval: "daily" }
   - package-ecosystem: "pip"
     directory: "/"
-    schedule: { interval: "daily" }
+  schedule: { interval: "daily" }
