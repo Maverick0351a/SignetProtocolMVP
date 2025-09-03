@@ -19,6 +19,8 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0  # needed for Codecov patch diff & project comparison
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -36,7 +38,7 @@ jobs:
       - name: Tests
         run: |
           export PYTHONPATH=./src
-          python -m pytest -q
+          python -m pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing -q
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # pinned from v4
         with:
