@@ -25,8 +25,11 @@ jobs:
           egress-policy: audit
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Remove Sigstore local TUF cache
-        run: rm -rf ~/.sigstore
+      - name: Clean Sigstore TUF cache and force root download
+        run: |
+          rm -rf ~/.sigstore
+          mkdir -p ~/.sigstore
+          curl -L -o ~/.sigstore/root.json https://sigstore-tuf-root.storage.googleapis.com/root.json
       - name: Run Scorecard
         uses: ossf/scorecard-action@v2.1.0
         with:
