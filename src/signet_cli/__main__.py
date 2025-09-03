@@ -202,7 +202,12 @@ def build_merkle(
             }
         )
     (day_dir / "proofs.json").write_text(json.dumps(proofs, indent=2))
-    print(f"[green]Wrote STH to {out} and proofs to {day_dir / 'proofs.json'}[/green]")
+    proofs_path = day_dir / "proofs.json"
+    print(
+        "[green]Wrote STH to {sth} and proofs to {proofs}[/green]".format(
+            sth=out, proofs=proofs_path
+        )
+    )
 
 
 @app.command()
@@ -337,23 +342,18 @@ def verify_inclusion(
     sth_obj = json.loads(pathlib.Path(sth).read_text())
     root = base64.b64decode(sth_obj["merkle_root_b64"])
     proofs_path = (
-        pathlib.Path(proofs)
-        if proofs
-        else receipt_path.parent / "proofs.json"
+        pathlib.Path(proofs) if proofs else receipt_path.parent / "proofs.json"
     )
     if not proofs_path.exists():
         print(f"[red]proofs.json not found at {proofs_path}[/red]")
         raise typer.Exit(code=1)
     proofs_data = json.loads(proofs_path.read_text())
-    entry = next(
-        (p for p in proofs_data if p["receipt"] == receipt_path.name), None
-    )
+    entry = next((p for p in proofs_data if p["receipt"] == receipt_path.name), None)
     if entry is None:
         print("[red]No proof entry for receipt[/red]")
         raise typer.Exit(code=1)
     proof = [
-        (base64.b64decode(item["sibling_b64"]), item["side"])
-        for item in entry["proof"]
+        (base64.b64decode(item["sibling_b64"]), item["side"]) for item in entry["proof"]
     ]
     ok = _verify(leaf, entry["index"], proof, root)
     print({"inclusion_valid": ok})
