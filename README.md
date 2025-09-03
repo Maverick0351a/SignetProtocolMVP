@@ -209,6 +209,8 @@ Multi‑tenant quotas & reserved capacity
 
 LangChain and JS adapter examples
 
+Fuzzing harnesses (ClusterFuzzLite) for receipt & Merkle logic
+
 Contributing
 
 ruff check + ruff format must pass
@@ -220,6 +222,23 @@ Update docs for any behavior change
 Run all:
 
 python -m ruff check src tests && python -m ruff format --check src tests && python -m pytest -q
+
+### Fuzzing (ClusterFuzzLite)
+
+We provide Atheris-based fuzz harnesses under `fuzz/` and two GitHub Actions workflows:
+
+- `fuzzing-pr.yml` (quick 2‑minute fuzz on every PR touching Python code or harnesses)
+- `fuzzing-cron.yml` (15‑minute nightly fuzz run)
+
+Local run (example):
+
+```bash
+pip install -r requirements-fuzz.txt
+python -m pip install -r requirements.txt
+PYTHONPATH=./src python fuzz/fuzz_merkle.py  # (runs until interrupted)
+```
+
+Workflows currently pin action references via placeholders (`PINNED_SHA_*`). Replace with real commit SHAs for full supply‑chain integrity and an improved OpenSSF Scorecard Fuzzing score.
 
 License
 
