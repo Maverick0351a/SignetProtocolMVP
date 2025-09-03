@@ -49,6 +49,18 @@ Tooling ▶ CLI: verify‑receipt | build‑merkle | build‑compliance‑pack |
 
 > **Requirements:** Python 3.11+ (Windows, macOS, Linux). Optional: Docker.
 
+### Install only the verification SDK
+
+```bash
+pip install signet-sdk
+```
+
+Import:
+
+```python
+from signet_sdk import verify_receipt, verify_sth, verify_inclusion
+```
+
 ### macOS/Linux
 ```bash
 python3 -m venv .venv && source .venv/bin/activate

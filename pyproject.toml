@@ -8,14 +8,13 @@ version = "0.1.0"
 description = "Signet Protocol Python SDK (receipt & STH verification)"
 authors = [{name = "Signet"}]
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 requires-python = ">=3.11"
 keywords = ["signet", "receipts", "merkle", "ed25519", "provenance"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent"
 ]
 dependencies = [
