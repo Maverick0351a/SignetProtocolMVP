@@ -9,6 +9,9 @@ permissions: read-all
 
 jobs:
   test:
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - name: Harden runner
@@ -34,3 +37,9 @@ jobs:
         run: |
           export PYTHONPATH=./src
           python -m pytest -q
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # pinned from v4
+        with:
+          files: ./coverage.xml
+          flags: api
+          fail_ci_if_error: true
