@@ -25,6 +25,8 @@ jobs:
           egress-policy: audit
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Remove Sigstore local TUF cache
+        run: rm -rf ~/.sigstore
       - name: Run Scorecard
         uses: ossf/scorecard-action@v2.1.0
         with:
