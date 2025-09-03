@@ -127,6 +127,6 @@ def verify_inclusion(
             (base64.b64decode(item["sibling_b64"]), item["side"]) for item in entry.get("proof", [])
         ]
         root = base64.b64decode(sth_json["merkle_root_b64"])
-    return _verify_inclusion(leaf_bytes, entry["index"], proof_list, root)
+        return _verify_inclusion(leaf_bytes, entry["index"], proof_list, root)
     except Exception:
         return False
