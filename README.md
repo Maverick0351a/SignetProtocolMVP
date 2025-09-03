@@ -160,6 +160,17 @@ verify_sth(sth_json: dict) -> bool
 
 verify_inclusion(receipt_json, sth_json) -> bool (inclusion proof wiring extended next)
 
+Inclusion Proof (after build_merkle creates proofs.json)
+
+```bash
+# build merkle (writes sth.json + proofs.json)
+python -m signet_cli build-merkle --dir ./storage/receipts
+
+# verify inclusion for a given receipt
+python -m signet_cli verify-inclusion --receipt ./storage/receipts/$(date +%F)/<receipt>.json \
+	--sth ./storage/receipts/$(date +%F)/sth.json
+```
+
 Build and install locally:
 
 python -m build

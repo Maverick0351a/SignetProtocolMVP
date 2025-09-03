@@ -186,7 +186,23 @@ def build_merkle(
 
     out = day_dir / "sth.json"
     out.write_text(json.dumps(sth, indent=2))
-    print(f"[green]Wrote STH to {out}[/green]")
+    # Generate inclusion proofs for each receipt
+    proofs = []
+    for idx, (fname, leaf) in enumerate(receipts):
+        proof = tree.inclusion_proof(idx)
+        proofs.append(
+            {
+                "receipt": fname,
+                "index": idx,
+                "leaf_hash_b64": base64.b64encode(leaf).decode(),
+                "proof": [
+                    {"sibling_b64": base64.b64encode(sib).decode(), "side": side}
+                    for sib, side in proof
+                ],
+            }
+        )
+    (day_dir / "proofs.json").write_text(json.dumps(proofs, indent=2))
+    print(f"[green]Wrote STH to {out} and proofs to {day_dir / 'proofs.json'}[/green]")
 
 
 @app.command()
@@ -301,6 +317,47 @@ Write-Host "Failures: $fails"; if ($fails -eq 0) { Write-Host PASS } else { Writ
     print(
         f"[green]Wrote compliance pack to {out_path} (files: {len(pack_files)})[/green]"
     )
+
+
+@app.command()
+def verify_inclusion(
+    receipt: str = typer.Option(..., help="Path to receipt JSON"),
+    sth: str = typer.Option(..., help="Path to sth.json"),
+    proofs: str = typer.Option(None, help="Optional path to proofs.json"),
+):
+    """Verify that a receipt is included in the Merkle tree attested by an STH."""
+    from signet_api.merkle import verify_inclusion as _verify
+
+    receipt_path = pathlib.Path(receipt)
+    receipt_obj = json.loads(receipt_path.read_text())
+    # Recompute leaf hash (same method as build_merkle)
+    leaf = hashlib.sha256(
+        json.dumps(receipt_obj, separators=(",", ":"), sort_keys=True).encode()
+    ).digest()
+    sth_obj = json.loads(pathlib.Path(sth).read_text())
+    root = base64.b64decode(sth_obj["merkle_root_b64"])
+    proofs_path = (
+        pathlib.Path(proofs)
+        if proofs
+        else receipt_path.parent / "proofs.json"
+    )
+    if not proofs_path.exists():
+        print(f"[red]proofs.json not found at {proofs_path}[/red]")
+        raise typer.Exit(code=1)
+    proofs_data = json.loads(proofs_path.read_text())
+    entry = next(
+        (p for p in proofs_data if p["receipt"] == receipt_path.name), None
+    )
+    if entry is None:
+        print("[red]No proof entry for receipt[/red]")
+        raise typer.Exit(code=1)
+    proof = [
+        (base64.b64decode(item["sibling_b64"]), item["side"])
+        for item in entry["proof"]
+    ]
+    ok = _verify(leaf, entry["index"], proof, root)
+    print({"inclusion_valid": ok})
+    raise typer.Exit(code=0 if ok else 1)
 
 
 if __name__ == "__main__":
