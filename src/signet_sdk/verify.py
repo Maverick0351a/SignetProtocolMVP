@@ -10,6 +10,7 @@ from nacl.signing import VerifyKey
 # Minimal crypto primitives #
 #############################
 
+
 def jcs_dumps(obj: Any) -> str:  # RFC 8785 canonical JSON
     return rfc8785.dumps(obj)
 
@@ -31,11 +32,14 @@ def ed25519_verify(pub: bytes, msg: str, sig: bytes) -> bool:
 # Merkle verification (SDK) #
 #############################
 
+
 def _h(data: bytes) -> bytes:
     return hashlib.sha256(data).digest()
 
 
-def _verify_inclusion(leaf: bytes, index: int, proof: List[Tuple[bytes, str]], root: bytes) -> bool:
+def _verify_inclusion(
+    leaf: bytes, index: int, proof: List[Tuple[bytes, str]], root: bytes
+) -> bool:
     h = leaf
     idx = index
     for sibling, side in proof:
@@ -120,11 +124,14 @@ def verify_inclusion(
         receipt_name = Path(receipt_json.get("__file_path__", "")).name
         entry = None
         if receipt_name:
-            entry = next((e for e in proofs_data if e.get("receipt") == receipt_name), None)
+            entry = next(
+                (e for e in proofs_data if e.get("receipt") == receipt_name), None
+            )
         if entry is None:
             return False
         proof_list: List[Tuple[bytes, str]] = [
-            (base64.b64decode(item["sibling_b64"]), item["side"]) for item in entry.get("proof", [])
+            (base64.b64decode(item["sibling_b64"]), item["side"])
+            for item in entry.get("proof", [])
         ]
         root = base64.b64decode(sth_json["merkle_root_b64"])
         return _verify_inclusion(leaf_bytes, entry["index"], proof_list, root)
