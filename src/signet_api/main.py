@@ -44,27 +44,11 @@ def _load_keys():
 
 @app.post("/vex/exchange")
 async def vex_exchange(request: Request):
-    # enforce content type and size limits
-    import os as _os
-    max_bytes = int(_os.getenv("SIGNET_INGRESS_MAX_BODY_BYTES", getattr(settings, "ingress_max_body_bytes", 1048576)))
+    # Enforce content type; size limit enforced by SizeLimitMiddleware (provides _cached_body)
     ct = request.headers.get("content-type", "")
     if not ct.lower().startswith("application/json"):
         raise HTTPException(status_code=415, detail="unsupported content type")
-    cl = request.headers.get("content-length")
-    if cl is not None:
-        try:
-            if int(cl) > max_bytes:
-                raise HTTPException(status_code=413, detail="request too large")
-        except ValueError:
-            # ignore malformed content-length and fall back to post-read check
-            pass
-
-    body = request.scope.get("_cached_body")
-    if body is None:
-        body = await request.body()
-    if len(body) > max_bytes:
-        raise HTTPException(status_code=413, detail="request too large")
-    # cache body for provenance verifier (already set by middleware; keep for safety)
+    body = request.scope.get("_cached_body") or await request.body()
     request.scope["_cached_body"] = body
 
     # Verify provenance (HTTP Message Signatures + Content-Digest)
