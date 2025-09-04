@@ -27,7 +27,7 @@ def _client_ed25519(tmp_path, monkeypatch):
     return TestClient(_app)
 
 
-def _ed25519_signer(sk: SigningKey):
+def _ed25519_resolver(sk: SigningKey):
     return NaClToPEMResolver(sk)
 
 
@@ -60,7 +60,7 @@ def test_ed25519_valid_path(tmp_path, monkeypatch):
     prepared = _prep_request({"message": {"text": "ok"}})
     signer = HTTPMessageSigner(
         signature_algorithm=algorithms.ED25519,
-        key_resolver=_ed25519_signer(sk),
+        key_resolver=_ed25519_resolver(sk),
     )
     import datetime as _dt
 
@@ -94,7 +94,7 @@ def test_signature_missing_component(tmp_path, monkeypatch):
     prepared = _prep_request({"message": {"text": "ok"}})
     signer = HTTPMessageSigner(
         signature_algorithm=algorithms.ED25519,
-        key_resolver=_ed25519_signer(sk),
+        key_resolver=_ed25519_resolver(sk),
     )
     # Omit content-type from covered components
     import datetime as _dt
@@ -121,7 +121,7 @@ def test_signature_stale_created(tmp_path, monkeypatch):
     prepared = _prep_request({"message": {"text": "old"}})
     signer = HTTPMessageSigner(
         signature_algorithm=algorithms.ED25519,
-        key_resolver=_ed25519_signer(sk),
+        key_resolver=_ed25519_resolver(sk),
     )
     # created far in the past beyond default skew 300s
     import datetime as _dt
