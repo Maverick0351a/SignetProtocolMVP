@@ -97,6 +97,13 @@ def verify_request(request) -> Dict[str, Any]:
     """
     # Extract headers for analysis (case-insensitive); redact Signature locally
     orig_headers = dict(request.headers)
+    # Ensure a host header is always present for canonical coverage. Some test clients
+    # or HTTP/2 translations may surface :authority instead; future enhancement could
+    # map :authority -> host. For now, if missing we derive from request.url.
+    if not any(h.lower() == "host" for h in orig_headers.keys()):
+        host_val = getattr(request.url, "hostname", None)
+        if host_val:
+            orig_headers["host"] = host_val
     lower_map = {k.lower(): v for k, v in orig_headers.items()}
     if "signature-input" in lower_map and "Signature-Input" not in orig_headers:
         orig_headers["Signature-Input"] = lower_map["signature-input"]
