@@ -9,6 +9,8 @@ permissions: read-all
 
 jobs:
   fuzz:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
