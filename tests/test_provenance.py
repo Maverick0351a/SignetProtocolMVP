@@ -5,7 +5,8 @@ from fastapi.testclient import TestClient
 from http_message_signatures import HTTPMessageSigner, algorithms
 from nacl.signing import SigningKey
 from tests._helpers import ensure_host_header
-from tests.crypto_compat import NaClToPEMResolver
+# NaClToPEMResolver provided by conftest (import for type checking / clarity)
+from tests.conftest import NaClToPEMResolver  # type: ignore
 
 
 class _StaticResolver:
