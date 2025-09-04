@@ -39,9 +39,14 @@ jobs:
         run: |
           export PYTHONPATH=./src
           python -m pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing -q
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # pinned from v4
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          files: ./coverage.xml
-          flags: api
+          name: coverage-xml
+          path: coverage.xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4 pinned
+        with:
+          files: coverage.xml
+          flags: unit
           fail_ci_if_error: true
