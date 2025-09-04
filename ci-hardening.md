@@ -89,7 +89,7 @@ G) sbom.yml
 H) pip-audit.yml
 - Root permissions: permissions: read-all
 - Jobs and job-level overrides:
-  - pip-audit: permissions: { contents: read, security-events: write, actions: write }
+  - pip-audit: permissions: { contents: read, security-events: write }
 - Uses (pinned):
   - step-security/harden-runner@ec9f2d5…
   - actions/checkout@08eba0b…
@@ -108,7 +108,7 @@ H) pip-audit.yml
   - fuzzing-pr.yml (fuzz): optionally add explicit { contents: read } (inherits root; acceptable)
   - fuzzing-cron.yml (fuzz): optionally add explicit { contents: read }
   - sbom.yml (sbom): optionally add explicit { contents: read }
-  - pip-audit.yml (pip-audit): remove actions: write; keep only { contents: read, security-events: write }
+  - pip-audit.yml (pip-audit): updated to { contents: read, security-events: write }
 
 3) Pinning status
 - All actions already pinned to full-length commit SHAs across workflows. No unpinned actions found; no new pin patches required.
@@ -123,3 +123,7 @@ H) pip-audit.yml
 - Pinned-Dependencies: All actions are pinned to full commit SHAs; Docker base images pinned by digest; Python installs in CI/Docker are hash-locked.
 - Dependency-Update-Tool: Dependabot enabled for github-actions and pip (daily), improving this check.
 - CI-Tests: CI exists and runs tests with coverage; fuzzing workflows run on PR and nightly; Codecov uploads coverage; this strengthens CI-related checks.
+
+6) Applied post-audit tweaks
+- Removed unnecessary actions: write from pip-audit.yml job permissions (tightens Token-Permissions)
+- Added CODEOWNERS file to enable branch protection code owner review enforcement
