@@ -141,6 +141,83 @@ def verify_receipt(path: str):
 
 
 @app.command()
+def verify(
+    receipt: str = typer.Option(..., help="Path to receipt JSON"),
+    sth: str = typer.Option(None, help="Path to sth.json (for inclusion)"),
+    proof: str = typer.Option(
+        None, help="Path to proofs.json (defaults to sibling in receipt dir)"
+    ),
+):
+    """Verify a receipt signature and (optionally) Merkle inclusion.
+
+    Exit codes:
+      0: all requested verifications succeeded
+      1: signature invalid or inclusion invalid / missing
+      2: usage / file errors
+    """
+    try:
+        r_path = pathlib.Path(receipt)
+        obj = json.loads(r_path.read_text())
+        # Signature verification
+        body = {k: obj[k] for k in obj.keys() if k != "signature_b64"}
+        from signet_api.crypto import ed25519_verify, jcs_dumps, B64D
+
+        canon = jcs_dumps(body)
+        sig_ok = ed25519_verify(
+            B64D(obj["signer_pubkey_b64"]), canon, B64D(obj["signature_b64"])
+        )
+        incl_ok = None
+        if sth:
+            try:
+                sth_obj = json.loads(pathlib.Path(sth).read_text())
+                root = base64.b64decode(sth_obj["merkle_root_b64"])
+                # Recompute leaf hash (same method as build_merkle)
+                leaf = hashlib.sha256(
+                    json.dumps(
+                        obj, separators=(",", ":"), sort_keys=True
+                    ).encode()
+                ).digest()
+                proofs_path = (
+                    pathlib.Path(proof)
+                    if proof
+                    else r_path.parent / "proofs.json"
+                )
+                if not proofs_path.exists():
+                    print("[red]proofs.json not found[/red]")
+                    raise typer.Exit(code=1)
+                proofs_data = json.loads(proofs_path.read_text())
+                entry = next(
+                    (p for p in proofs_data if p["receipt"] == r_path.name), None
+                )
+                if entry is None:
+                    incl_ok = False
+                else:
+                    from signet_api.merkle import verify_inclusion as _verify
+
+                    proof_seq = [
+                        (
+                            base64.b64decode(item["sibling_b64"]),
+                            item["side"],
+                        )
+                        for item in entry["proof"]
+                    ]
+                    incl_ok = _verify(leaf, entry["index"], proof_seq, root)
+            except Exception:
+                incl_ok = False
+        result = {"signature_valid": bool(sig_ok)}
+        if incl_ok is not None:
+            result["inclusion_valid"] = bool(incl_ok)
+        print(result)
+        code = 0 if sig_ok and (incl_ok in (None, True)) else 1
+        raise typer.Exit(code=code)
+    except typer.Exit:
+        raise
+    except Exception as e:  # file / parse errors
+        print(f"[red]verify error: {e}[/red]")
+        raise typer.Exit(code=2)
+
+
+@app.command()
 def build_merkle(
     dir: str = typer.Option("./storage/receipts", help="Base receipts directory"),
 ):

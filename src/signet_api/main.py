@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import datetime
+import logging
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -11,10 +12,18 @@ from .receipts import make_receipt
 from .models import ExchangePayload
 from .pipeline import run_sft
 from .provenance import verify_request
+from .logutil import setup_logging
 from .middleware.size_limit import SizeLimitMiddleware
 
 app = FastAPI(title="Signet Micro-MVP")
 app.add_middleware(SizeLimitMiddleware)
+
+# Initialize logging (idempotent) and dedicated audit logger
+try:  # guard for repeated reloads (e.g., dev hot reload)
+    setup_logging()
+except Exception:  # pragma: no cover - logging init failures non-fatal
+    pass
+_audit_logger = logging.getLogger("signet.audit")
 
 
 def _ensure_dirs():
@@ -119,7 +128,36 @@ async def vex_exchange(request: Request):
     out_path = receipts_dir / f"{rid}.json"
     out_path.write_text(json.dumps(receipt.model_dump(), indent=2))
 
-    return JSONResponse(receipt.model_dump())
+    # Audit log (no PII / raw payload contents) after successful persistence
+    try:
+        _audit_logger.info(
+            json.dumps(
+                {
+                    "event": "receipt_issued",
+                    "ts": receipt.ts,
+                    "receipt_id": rid,
+                    "payload_hash_b64": receipt.payload_hash_b64,
+                    "prev_receipt_hash_b64": receipt.prev_receipt_hash_b64,
+                    "chain_id": receipt.chain_id,
+                    "signer_pubkey_b64": receipt.signer_pubkey_b64,
+                    "http": {
+                        "method": request.method,
+                        "path": request.url.path,
+                        "signer_key_id": http_meta.get("signer_key_id"),
+                    },
+                }
+            )
+        )
+    except Exception:  # pragma: no cover - logging shouldn't break response
+        pass
+
+    return JSONResponse(
+        receipt.model_dump(),
+        headers={
+            "X-Signet-Receipt-Id": rid,
+            "X-Signet-Payload-Hash": receipt.payload_hash_b64,
+        },
+    )
 
 
 @app.get("/healthz")

@@ -18,6 +18,18 @@ class Settings(BaseSettings):
         default="./keys/ingress_hmac.json", alias="SIGNET_INGRESS_HMAC_PATH"
     )
     ingress_max_skew: int = Field(default=300, alias="SIGNET_INGRESS_MAX_SKEW")
+    ingress_max_body_bytes: int = Field(
+        default=1048576, alias="SIGNET_INGRESS_MAX_BODY_BYTES"
+    )
+
+    # Maximum age for signature 'created' parameter (seconds)
+    sig_max_skew_seconds: int = Field(default=300, alias="SIGNET_SIG_MAX_SKEW_SECONDS")
+
+    # Global request size limit enforced by middleware (bytes)
+    max_request_bytes: int = Field(default=262144, alias="SIGNET_MAX_REQUEST_BYTES")
+
+    allow_dev_keygen: bool = Field(default=False, alias="SIGNET_ALLOW_DEV_KEYGEN")
+    allow_missing_alg: bool = Field(default=False, alias="SIGNET_ALLOW_MISSING_ALG")
 
     log_level: str = Field(default="INFO", alias="SIGNET_LOG_LEVEL")
 
