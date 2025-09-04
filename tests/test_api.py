@@ -4,6 +4,7 @@ import json
 import hashlib
 from http_message_signatures import HTTPMessageSigner, algorithms
 from signet_cli.__main__ import StaticResolver
+from tests._helpers import ensure_host_header
 
 
 def test_exchange_roundtrip(tmp_path, monkeypatch):
@@ -42,6 +43,7 @@ def test_exchange_roundtrip(tmp_path, monkeypatch):
         signature_algorithm=algorithms.HMAC_SHA256,
         key_resolver=StaticResolver("k1", secret),
     )
+    prepared = ensure_host_header(prepared)
     signer.sign(
         prepared,
         key_id="k1",
@@ -88,12 +90,12 @@ def _signed_request(payload, secret: bytes):
         signature_algorithm=algorithms.HMAC_SHA256,
         key_resolver=StaticResolver("k1", secret),
     )
+    prepared = ensure_host_header(prepared)
     signer.sign(
         prepared,
         key_id="k1",
         covered_component_ids=("@method", "@path", "content-digest"),
     )
-    prepared.headers.setdefault("host", "testserver")
     return prepared
 
 

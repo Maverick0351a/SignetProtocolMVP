@@ -1,0 +1,4 @@
+# Code owners for review routing and branch protection
+# Format: file pattern <one or more owners>
+# Fallback catch-all:
+* @Maverick0351a

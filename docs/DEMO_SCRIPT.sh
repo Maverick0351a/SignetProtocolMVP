@@ -5,7 +5,7 @@ set -euo pipefail
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-pip install -r requirements.txt -r requirements-dev.txt
+pip install --no-deps --require-hashes -r requirements.lock -r requirements-dev.lock
 pre-commit install || true
 
 export PYTHONPATH=./src

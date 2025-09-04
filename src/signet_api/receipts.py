@@ -31,7 +31,7 @@ def make_receipt(
         "chain_id": settings.chain_id,
         "ts": _now_iso(),
         "payload_hash_b64": B64(payload_hash),
-        "prev_receipt_hash_b64": prev_receipt_hash_b64,
+    "prev_receipt_hash_b64": prev_receipt_hash_b64,  # links to previous receipt's payload hash
         "signer_pubkey_b64": B64(signer_pk_bytes),
         "http": http_meta,
     }

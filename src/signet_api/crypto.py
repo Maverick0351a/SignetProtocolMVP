@@ -14,8 +14,11 @@ def B64(b: bytes) -> str:
 
 
 def B64D(s: str) -> bytes:
-    """Decode base64 ASCII string to bytes."""
-    return base64.b64decode(s.encode("ascii"))
+    """Decode base64 ASCII string to bytes with strict validation."""
+    try:
+        return base64.b64decode(s.encode("ascii"), validate=True)
+    except Exception as e:
+        raise ValueError("invalid base64") from e
 
 
 def sha256(data: bytes) -> bytes:

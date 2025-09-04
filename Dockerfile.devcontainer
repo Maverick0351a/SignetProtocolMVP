@@ -1,10 +1,12 @@
 # Devcontainer image (larger, with build tools)
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:18634e45b29c0dd1a9a3a3d0781f9f8a221fe32ee7a853db01e9120c710ef535
 
 RUN apt-get update && apt-get install -y --no-install-recommends     build-essential git curl ca-certificates libsodium23 &&     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
-COPY requirements.txt requirements-dev.txt ./
-RUN pip install --no-cache-dir --upgrade pip &&     pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+COPY requirements.lock requirements-dev.lock ./
+RUN pip install --no-cache-dir --upgrade pip \
+	&& pip install --no-cache-dir --require-hashes -r requirements.lock \
+	&& pip install --no-cache-dir --require-hashes -r requirements-dev.lock
 
 COPY . .

@@ -5,15 +5,12 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-# Minimal, read-only by default; Scorecard needs security-events: write and id-token: write in this job.
-permissions:
-  contents: read
+permissions: read-all
 
 jobs:
   scorecard:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       security-events: write   # to upload SARIF to code scanning
       id-token: write          # required by Scorecard action even if publish_results=false (OIDC)
     steps:

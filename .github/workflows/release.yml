@@ -1,0 +1,76 @@
+name: Release (artifacts + signatures + provenance)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  release-artifacts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to upload assets to the GitHub Release
+      id-token: write   # needed for sigstore OIDC & attestations
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Build artifacts (sdist + wheel)
+        run: |
+          python -m pip install --no-cache-dir 'pip==24.2'
+          pip install --no-deps --require-hashes -r requirements.lock -r requirements-dev.lock
+          python -m build
+          python -m twine check dist/*
+      - name: Generate SBOM (CycloneDX JSON)
+        run: |
+          pip install cyclonedx-bom==4.3.12
+          cyclonedx-bom -o dist/sbom.json --format json
+      - name: Sign artifacts (sigstore OIDC)
+        env:
+          SIGSTORE_TRUST_ROOT: fulcio
+        run: |
+          pip install sigstore==2.2.2
+          for f in dist/*.{whl,tar.gz}; do
+            [ -f "$f" ] || continue
+            python -m sigstore sign --bundle "${f}.sigstore.json" "$f"
+          done
+          (shasum -a 256 dist/* || sha256sum dist/*) > dist/hashes.sha256
+      - name: In-toto provenance attestation (artifact digest list)
+    id: provenance
+    run: |
+      python - <<'PY'
+      import hashlib, json, os, glob
+
+      entries = []
+      for path in glob.glob('dist/*'):
+        if os.path.isdir(path):
+          continue
+        with open(path,'rb') as fh:
+          h = hashlib.sha256(fh.read()).hexdigest()
+        entries.append({"name": os.path.basename(path), "sha256": h})
+
+      doc = {
+        "_type": "https://in-toto.io/Statement/v0.1",
+        "predicateType": "https://slsa.dev/provenance/v1",
+        "subject": entries,
+      }
+      with open('dist/provenance.intoto.jsonl','w') as f:
+        f.write(json.dumps(doc) + '\n')
+      PY
+      - name: Upload assets to GitHub Release (gh)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name="${GITHUB_REF##*/}"
+          for a in dist/*; do
+            gh release upload "$tag_name" "$a" --clobber
+          done

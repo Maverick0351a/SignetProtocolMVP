@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import datetime
+import logging
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -11,8 +12,18 @@ from .receipts import make_receipt
 from .models import ExchangePayload
 from .pipeline import run_sft
 from .provenance import verify_request
+from .logutil import setup_logging
+from .middleware.size_limit import SizeLimitMiddleware
 
 app = FastAPI(title="Signet Micro-MVP")
+app.add_middleware(SizeLimitMiddleware)
+
+# Initialize logging (idempotent) and dedicated audit logger
+try:  # guard for repeated reloads (e.g., dev hot reload)
+    setup_logging()
+except Exception:  # pragma: no cover - logging init failures non-fatal
+    pass
+_audit_logger = logging.getLogger("signet.audit")
 
 
 def _ensure_dirs():
@@ -25,7 +36,12 @@ def _load_keys():
     sk_path = Path(settings.signing_key_path)
     pk_path = Path(settings.signing_pubkey_path)
     if not sk_path.exists() or not pk_path.exists():
-        # generate if missing (dev only)
+        # generate if allowed for development only (gated by SIGNET_ALLOW_DEV_KEYGEN)
+        allow_dev = getattr(settings, "allow_dev_keygen", False)
+        if not allow_dev:
+            raise FileNotFoundError(
+                "signing keypair not found; set SIGNET_ALLOW_DEV_KEYGEN=true to auto-generate for development"
+            )
         from nacl.signing import SigningKey
 
         sk = SigningKey.generate()
@@ -37,17 +53,18 @@ def _load_keys():
 
 @app.post("/vex/exchange")
 async def vex_exchange(request: Request):
-    body = await request.body()
-    # cache body for provenance verifier
+    # Enforce content type; size limit enforced by SizeLimitMiddleware (provides _cached_body)
+    ct = request.headers.get("content-type", "")
+    if not ct.lower().startswith("application/json"):
+        raise HTTPException(status_code=415, detail="unsupported content type")
+    body = request.scope.get("_cached_body") or await request.body()
     request.scope["_cached_body"] = body
 
     # Verify provenance (HTTP Message Signatures + Content-Digest)
     try:
         prov = verify_request(request)
-    except Exception as e:
-        raise HTTPException(
-            status_code=401, detail=f"provenance verification failed: {e}"
-        )
+    except Exception:
+        raise HTTPException(status_code=401, detail="provenance verification failed")
 
     try:
         raw = await request.json()
@@ -57,8 +74,8 @@ async def vex_exchange(request: Request):
     # Validate schema
     try:
         payload_model = ExchangePayload(**raw)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"payload schema invalid: {e}")
+    except Exception:
+        raise HTTPException(status_code=400, detail="payload schema invalid")
     payload = payload_model.model_dump()
 
     # Run SFT (sanitize/normalize/policy) exactly once; map denial to 403
@@ -75,12 +92,27 @@ async def vex_exchange(request: Request):
     )
     receipts_dir.mkdir(parents=True, exist_ok=True)
 
-    # Find the last receipt to link from (hash-link)
+    # Find the most recent receipt to link from (hash-link). Lexicographic
+    # ordering of UUID filenames is not chronological, so we parse timestamps.
     prev_hash_b64 = None
-    existing = sorted(receipts_dir.glob("*.json"))
-    if existing:
-        last = json.loads(existing[-1].read_text())
-        prev_hash_b64 = last.get("payload_hash_b64")
+    candidates = []
+    for p in receipts_dir.glob("*.json"):
+        try:
+            obj = json.loads(p.read_text())
+            ts = obj.get("ts")
+            # Parse ISO timestamp; ignore if invalid
+            if isinstance(ts, str):
+                from datetime import datetime as _dt
+                try:
+                    parsed = _dt.fromisoformat(ts.replace("Z", "+00:00"))
+                except Exception:
+                    continue
+                candidates.append((parsed, obj.get("payload_hash_b64")))
+        except Exception:
+            continue
+    if candidates:
+        candidates.sort(key=lambda x: x[0])
+        prev_hash_b64 = candidates[-1][1]
 
     http_meta = {
         "method": request.method,
@@ -96,7 +128,36 @@ async def vex_exchange(request: Request):
     out_path = receipts_dir / f"{rid}.json"
     out_path.write_text(json.dumps(receipt.model_dump(), indent=2))
 
-    return JSONResponse(receipt.model_dump())
+    # Audit log (no PII / raw payload contents) after successful persistence
+    try:
+        _audit_logger.info(
+            json.dumps(
+                {
+                    "event": "receipt_issued",
+                    "ts": receipt.ts,
+                    "receipt_id": rid,
+                    "payload_hash_b64": receipt.payload_hash_b64,
+                    "prev_receipt_hash_b64": receipt.prev_receipt_hash_b64,
+                    "chain_id": receipt.chain_id,
+                    "signer_pubkey_b64": receipt.signer_pubkey_b64,
+                    "http": {
+                        "method": request.method,
+                        "path": request.url.path,
+                        "signer_key_id": http_meta.get("signer_key_id"),
+                    },
+                }
+            )
+        )
+    except Exception:  # pragma: no cover - logging shouldn't break response
+        pass
+
+    return JSONResponse(
+        receipt.model_dump(),
+        headers={
+            "X-Signet-Receipt-Id": rid,
+            "X-Signet-Payload-Hash": receipt.payload_hash_b64,
+        },
+    )
 
 
 @app.get("/healthz")
@@ -114,5 +175,5 @@ async def vex_verify(receipt: dict):
         canon = jcs_dumps(body)
         ok = ed25519_verify(B64D(receipt["signer_pubkey_b64"]), canon, B64D(sig_b64))
         return {"signature_valid": bool(ok)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid receipt")
