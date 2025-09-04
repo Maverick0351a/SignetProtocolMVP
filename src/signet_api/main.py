@@ -11,28 +11,10 @@ from .receipts import make_receipt
 from .models import ExchangePayload
 from .pipeline import run_sft
 from .provenance import verify_request
+from .middleware.size_limit import SizeLimitMiddleware
 
 app = FastAPI(title="Signet Micro-MVP")
-
-
-@app.middleware("http")
-async def limit_request_size(request: Request, call_next):
-    import os as _os
-    max_bytes = int(_os.getenv("SIGNET_MAX_REQUEST_BYTES", getattr(settings, "max_request_bytes", 262144)))
-    # Enforce early using Content-Length if provided
-    cl = request.headers.get("content-length")
-    if cl is not None:
-        try:
-            if int(cl) > max_bytes:
-                return JSONResponse({"detail": "request too large"}, status_code=413)
-        except ValueError:
-            pass
-    body = await request.body()
-    if len(body) > max_bytes:
-        return JSONResponse({"detail": "request too large"}, status_code=413)
-    # cache for downstream provenance
-    request.scope["_cached_body"] = body
-    return await call_next(request)
+app.add_middleware(SizeLimitMiddleware)
 
 
 def _ensure_dirs():
