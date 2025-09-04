@@ -26,12 +26,6 @@ def make_receipt(
     http_meta: dict,
 ) -> SR1Receipt:
     payload_hash = canonical_payload_hash(payload)
-    import os
-    if os.getenv("SIGNET_DEBUG"):
-        print(
-            "[SIGNET_DEBUG] make_receipt payload_hash=", B64(payload_hash),
-            " prev_in=", prev_receipt_hash_b64
-        )
     body = {
         "receipt_id": str(uuid.uuid4()),
         "chain_id": settings.chain_id,

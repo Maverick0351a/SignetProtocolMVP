@@ -162,15 +162,9 @@ def verify_request(request) -> Dict[str, Any]:
             self.headers = headers
             self.body = body
 
-    try:
-        verify_results = verifier.verify(
-            ReqShim(request.method, str(request.url), orig_headers, body)
-        )
-    except Exception as e:  # noqa: BLE001
-        import os
-        if os.getenv("SIGNET_DEBUG"):
-            print("[SIGNET_DEBUG] verify failure", repr(e))
-        raise
+    verify_results = verifier.verify(
+        ReqShim(request.method, str(request.url), orig_headers, body)
+    )
     vr = verify_results[0]
 
     # Enforce required covered components; stricter for Ed25519.
@@ -181,11 +175,6 @@ def verify_request(request) -> Dict[str, Any]:
         if name.startswith('"') and name.endswith('"') and len(name) > 2:
             name = name[1:-1]
         covered.add(name)
-    import os
-    if os.getenv("SIGNET_DEBUG"):
-        print(
-            "[SIGNET_DEBUG] alg=", alg_label, "covered=", covered, "params=", vr.parameters
-        )
     if alg_label == "ed25519":
         required = {"@method", "@path", "content-digest", "content-type", "host"}
         if not required.issubset(covered):
