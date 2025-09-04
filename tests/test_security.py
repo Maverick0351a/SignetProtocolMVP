@@ -74,7 +74,7 @@ def test_ed25519_valid_path(tmp_path, monkeypatch):
             "content-type",
             "host",
         ),
-        created=_dt.datetime.now(),
+        created=_dt.datetime.now(_dt.timezone.utc),
     )
     r = client.post("/vex/exchange", data=prepared.body, headers=dict(prepared.headers))
     assert r.status_code == 200, r.text
@@ -103,7 +103,7 @@ def test_signature_missing_component(tmp_path, monkeypatch):
         prepared,
         key_id="caller-1",
         covered_component_ids=("@method", "@path", "content-digest", "host"),
-        created=_dt.datetime.now(),
+        created=_dt.datetime.now(_dt.timezone.utc),
     )
     r = client.post("/vex/exchange", data=prepared.body, headers=dict(prepared.headers))
     assert r.status_code == 401
@@ -136,7 +136,7 @@ def test_signature_stale_created(tmp_path, monkeypatch):
             "content-type",
             "host",
         ),
-        created=_dt.datetime.now() - _dt.timedelta(seconds=100000),
+        created=_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(seconds=100000),
     )
     r = client.post("/vex/exchange", data=prepared.body, headers=dict(prepared.headers))
     assert r.status_code == 401
@@ -170,7 +170,7 @@ def test_oversize_payload(tmp_path, monkeypatch):
             "content-type",
             "host",
         ),
-        created=_dt.datetime.now(),
+        created=_dt.datetime.now(_dt.timezone.utc),
     )
     r = client.post("/vex/exchange", data=prepared.body, headers=dict(prepared.headers))
     assert r.status_code == 413

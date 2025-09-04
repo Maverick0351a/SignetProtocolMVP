@@ -60,7 +60,7 @@ def _signed_request(
         prepared,
         key_id=key_id,
         covered_component_ids=covered,
-        created=_dt.datetime.now(),
+        created=_dt.datetime.now(_dt.timezone.utc),
     )
     if headers:
         if isinstance(headers, dict):
