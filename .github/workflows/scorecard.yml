@@ -24,7 +24,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Run Scorecard (SARIF only; no publish/sign)
-        uses: ossf/scorecard-action@937ffa90d79c7d720498178154ad4c7ba1e4ad8c # v2.1.0
+        uses: ossf/scorecard-action@05b42c624433fc40578a4040d5cf5e36ddca8cde # v2.4.2
         with:
           results_file: results.sarif
           results_format: sarif
